@@ -1,0 +1,21 @@
+{
+  "name": "customers",
+  "required_columns": [
+    "customer_id",
+    "customer_name",
+    "document_type",
+    "segment",
+    "state",
+    "created_at",
+    "internal_score"
+  ],
+  "not_null": [
+    "customer_id",
+    "segment",
+    "state",
+    "created_at"
+  ],
+  "unique": [
+    "customer_id"
+  ]
+}

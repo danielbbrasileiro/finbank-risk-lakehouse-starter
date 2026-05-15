@@ -1,0 +1,12 @@
+finbank_postgres:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: localhost
+      user: finbank
+      password: finbank
+      port: 5432
+      dbname: finbank
+      schema: analytics
+      threads: 4

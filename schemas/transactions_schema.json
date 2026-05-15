@@ -1,0 +1,23 @@
+{
+  "name": "transactions",
+  "required_columns": [
+    "transaction_id",
+    "customer_id",
+    "account_id",
+    "transaction_date",
+    "channel",
+    "transaction_type",
+    "amount",
+    "is_suspicious"
+  ],
+  "not_null": [
+    "transaction_id",
+    "customer_id",
+    "account_id",
+    "transaction_date",
+    "amount"
+  ],
+  "unique": [
+    "transaction_id"
+  ]
+}

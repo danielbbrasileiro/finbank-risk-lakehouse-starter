@@ -1,0 +1,42 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    tables:
+      - name: customers
+      - name: accounts
+      - name: transactions
+      - name: loans
+
+models:
+  - name: stg_customers
+    columns:
+      - name: customer_id
+        data_tests:
+          - unique
+          - not_null
+      - name: segment
+        data_tests:
+          - not_null
+
+  - name: stg_transactions
+    columns:
+      - name: transaction_id
+        data_tests:
+          - unique
+          - not_null
+      - name: amount
+        data_tests:
+          - not_null
+
+  - name: stg_loans
+    columns:
+      - name: loan_id
+        data_tests:
+          - unique
+          - not_null
+      - name: risk_rating
+        data_tests:
+          - accepted_values:
+              values: ["AA", "A", "B", "C", "D", "E"]
