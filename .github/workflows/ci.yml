@@ -1,0 +1,57 @@
+name: ci
+
+on:
+  push:
+    branches: ["main", "professional-data-engineering-case"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: finbank
+          POSTGRES_PASSWORD: finbank
+          POSTGRES_DB: finbank
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U finbank -d finbank"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.5.26"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: uv pip install --system -r requirements.txt pytest ruff
+
+      - name: Run Python tests
+        run: python -m pytest tests -q
+
+      - name: Run Ruff
+        run: ruff check src dashboards tests
+
+      - name: Build Rust validator
+        run: cargo build --manifest-path src/rust_validator/Cargo.toml --release
+
+      - name: Smoke dbt parse
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: "5432"
+          POSTGRES_DB: finbank
+          POSTGRES_USER: finbank
+          POSTGRES_PASSWORD: finbank
+        run: cd dbt && dbt parse --profiles-dir .

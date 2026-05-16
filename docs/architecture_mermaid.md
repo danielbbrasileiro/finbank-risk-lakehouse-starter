@@ -2,13 +2,20 @@
 
 ```mermaid
 flowchart TD
-    A[BCB API / CVM / Synthetic Data] --> B[Python Ingestion]
-    B --> C[Rust Validator CLI]
-    C --> D[Raw Files / MinIO / S3 Bronze]
-    D --> E[Databricks Spark Bronze-Silver-Gold]
-    E --> F[Snowflake or PostgreSQL Warehouse]
-    F --> G[dbt Staging, Intermediate, Marts]
-    G --> H[Dashboard]
-    G --> I[AI Risk Assistant]
-    J[dbt Docs and Tests] --> I
+    A[Synthetic Banking Data + BCB API] --> B[Python Ingestion]
+    B --> C[Raw CSV / MinIO-style Bronze]
+    C --> D[Rust Data Contracts]
+    D --> E[PostgreSQL Raw Warehouse]
+    E --> F[dbt Staging + Intermediate + Marts]
+    F --> G[Streamlit Risk Dashboard]
+    F --> H[Governed AI Risk Copilot]
+    I[Docs + dbt Manifest + Schemas] --> H
+    H --> J[SQL Guardrails + Offline Evals]
+    K[AWS S3 Terraform Blueprint] -. optional cloud path .-> L[Databricks Delta Bronze/Silver/Gold]
+    L -. optional cloud path .-> M[Snowflake Marts]
+    M -. optional cloud path .-> F
+    N[Dagster Asset Graph] --> B
+    N --> D
+    N --> F
+    N --> J
 ```

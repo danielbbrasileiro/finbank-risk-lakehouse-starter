@@ -2,11 +2,11 @@
 set -e
 
 echo "Creating Python virtual environment..."
-python -m venv .venv
+uv venv --allow-existing .venv
 source .venv/bin/activate
 
 echo "Installing dependencies..."
-pip install -r requirements.txt
+uv pip install -r requirements.txt
 
 echo "Copying .env.example to .env if missing..."
 if [ ! -f .env ]; then

@@ -5,14 +5,18 @@ echo "Starting local infrastructure..."
 docker compose up -d
 
 echo "Generating synthetic data..."
-python src/python_ingestion/synthetic_generator.py
+make generate
+
+echo "Validating raw files with Rust data contracts..."
+make validate
+
+echo "Publishing validated files to local bronze..."
+make publish-bronze
 
 echo "Loading data into PostgreSQL..."
-python src/python_ingestion/load_to_postgres.py
+make load
 
 echo "Running dbt build..."
-cd dbt
-dbt build --profiles-dir .
-cd ..
+make dbt
 
 echo "Local pipeline finished."

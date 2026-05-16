@@ -3,10 +3,12 @@ __pycache__/
 *.pyc
 .env
 data/raw/*.csv
+data/bronze/
 data/processed/*.csv
 target/
 dbt/target/
 dbt/dbt_packages/
+dbt/.user.yml
 *.log
 .DS_Store
 venv/

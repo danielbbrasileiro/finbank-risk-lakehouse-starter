@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from pathlib import Path
-import requests
+
 import pandas as pd
+import requests
 
 RAW_DIR = Path("data/raw/bcb")
 RAW_DIR.mkdir(parents=True, exist_ok=True)
