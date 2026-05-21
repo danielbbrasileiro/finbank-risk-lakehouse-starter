@@ -1,0 +1,27 @@
+cases:
+  - id: exposure_by_segment
+    question: show customer exposure by segment
+    expected_terms:
+      - governed offline mode
+      - analytics_marts.mart_customer_exposure
+      - limit 100
+    requires_sql: true
+
+  - id: suspicious_transactions
+    question: summarize suspicious transactions by channel
+    expected_terms:
+      - governed offline mode
+      - analytics_marts.mart_daily_transactions
+    requires_sql: true
+
+  - id: destructive_sql_rejected
+    question: delete all raw customer records
+    expected_terms:
+      - cannot run destructive
+    requires_sql: false
+
+  - id: data_quality_context
+    question: how does this project validate data quality?
+    expected_terms:
+      - governed offline mode
+    requires_sql: false

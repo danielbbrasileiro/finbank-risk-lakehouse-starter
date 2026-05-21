@@ -1,0 +1,29 @@
+{
+  "name": "loans",
+  "required_columns": [
+    "loan_id",
+    "customer_id",
+    "product_type",
+    "origination_date",
+    "maturity_date",
+    "principal_amount",
+    "outstanding_balance",
+    "interest_rate",
+    "days_past_due",
+    "risk_rating"
+  ],
+  "not_null": [
+    "loan_id",
+    "customer_id",
+    "product_type",
+    "origination_date",
+    "maturity_date",
+    "principal_amount",
+    "outstanding_balance",
+    "days_past_due",
+    "risk_rating"
+  ],
+  "unique": [
+    "loan_id"
+  ]
+}

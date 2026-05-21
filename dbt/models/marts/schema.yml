@@ -1,0 +1,89 @@
+version: 2
+
+models:
+  - name: mart_customer_exposure
+    description: Customer-level credit exposure mart used by the dashboard and governed AI copilot.
+    columns:
+      - name: customer_id
+        description: Stable customer identifier from the synthetic core banking source.
+        data_tests:
+          - unique
+          - not_null
+      - name: segment
+        description: Retail or small-business segment.
+        data_tests:
+          - not_null
+      - name: total_outstanding_balance
+        description: Current outstanding loan balance aggregated at customer level.
+        data_tests:
+          - not_null
+      - name: portfolio_status
+        description: Derived credit risk status based on maximum days past due.
+        data_tests:
+          - accepted_values:
+              values: ["PERFORMING", "WATCHLIST", "HIGH_RISK", "DEFAULT_RISK"]
+
+  - name: mart_daily_transactions
+    description: Daily transaction monitoring mart for volume and suspicious activity analysis.
+    columns:
+      - name: transaction_date
+        description: Business date of the transaction slice.
+        data_tests:
+          - not_null
+      - name: channel
+        description: Transaction channel such as PIX, CARD, TED or ATM.
+        data_tests:
+          - not_null
+      - name: transaction_count
+        description: Number of transactions in the date/channel/type grain.
+        data_tests:
+          - not_null
+      - name: suspicious_count
+        description: Count of transactions flagged as suspicious by the synthetic generator.
+        data_tests:
+          - not_null
+
+  - name: mart_credit_macro_context
+    description: Portfolio exposure summarized against the latest BCB macroeconomic context.
+    columns:
+      - name: macro_observation_date
+        description: Latest macroeconomic observation date available in the local raw source.
+        data_tests:
+          - not_null
+      - name: portfolio_status
+        description: Derived credit risk status from the customer exposure mart.
+        data_tests:
+          - accepted_values:
+              values: ["PERFORMING", "WATCHLIST", "HIGH_RISK", "DEFAULT_RISK"]
+      - name: total_outstanding_balance
+        description: Outstanding balance by portfolio status under the latest macro context.
+        data_tests:
+          - not_null
+
+exposures:
+  - name: streamlit_risk_dashboard
+    label: FinBank Risk Intelligence Dashboard
+    type: dashboard
+    maturity: medium
+    url: http://localhost:8501
+    description: Executive dashboard for portfolio exposure, delinquency and suspicious transaction monitoring.
+    depends_on:
+      - ref('mart_customer_exposure')
+      - ref('mart_daily_transactions')
+      - ref('mart_credit_macro_context')
+    owner:
+      name: Daniel Brasileiro
+      email: portfolio@example.com
+
+  - name: governed_ai_risk_copilot
+    label: Governed AI Risk Copilot
+    type: application
+    maturity: medium
+    description: Offline/LLM-assisted analyst copilot constrained to documented risk marts and SQL guardrails.
+    depends_on:
+      - ref('mart_customer_exposure')
+      - ref('mart_daily_transactions')
+      - ref('mart_credit_macro_context')
+    owner:
+      name: Daniel Brasileiro
+      email: portfolio@example.com

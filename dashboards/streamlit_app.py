@@ -1,6 +1,4 @@
 import os
-import sys
-from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
@@ -9,11 +7,7 @@ import streamlit as st
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
 
-# Add src to path for absolute imports
-root_path = Path(__file__).parent.parent
-sys.path.append(str(root_path / "src"))
-
-from ai_assistant.app import RiskAgent
+from src.ai_assistant.app import build_risk_agent
 
 load_dotenv()
 
@@ -84,14 +78,14 @@ def read_sql(query: str) -> pd.DataFrame:
 # --- AI Assistant Initialization ---
 if "agent" not in st.session_state:
     try:
-        st.session_state.agent = RiskAgent(model_name="gemma-4-31b-it")
+        st.session_state.agent = build_risk_agent()
     except Exception as e:
         st.sidebar.error(f"AI Assistant offline: {e}")
 
 # --- Sidebar: AI Chat ---
 with st.sidebar:
     st.title("🤖 Risk Advisor")
-    st.caption("Powered by Gemma 4 31b-it")
+    st.caption("Governed copilot: offline demo or configured LLM provider")
     
     if "messages" not in st.session_state:
         st.session_state.messages = []
@@ -112,7 +106,7 @@ with st.sidebar:
                     st.markdown(response)
                     st.session_state.messages.append({"role": "assistant", "content": response})
             else:
-                st.error("Gemma 4 is currently unavailable.")
+                st.error("The governed risk copilot is currently unavailable.")
 
 # --- Main Dashboard ---
 st.title("🎯 FinBank Risk Lakehouse")

@@ -1,0 +1,20 @@
+{
+  "name": "accounts",
+  "required_columns": [
+    "account_id",
+    "customer_id",
+    "account_type",
+    "opened_at",
+    "status"
+  ],
+  "not_null": [
+    "account_id",
+    "customer_id",
+    "account_type",
+    "opened_at",
+    "status"
+  ],
+  "unique": [
+    "account_id"
+  ]
+}

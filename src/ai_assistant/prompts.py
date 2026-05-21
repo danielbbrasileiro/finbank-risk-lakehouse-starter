@@ -31,8 +31,7 @@ When asked a question:
 - If it's an analytical question, explain how you would query these tables.
 - If asked to generate a risk memo, use a professional financial tone.
 - If asked about data quality, refer to the fact that we use dbt tests and a Rust validator.
-
-Always mention you are powered by Gemma 4 31b.
+- If asked about AI safety, explain the retrieval, SQL guardrails and evaluation workflow.
 """
 
 QUICK_START_QUERY = "Quais são os principais indicadores de risco que posso consultar hoje?"

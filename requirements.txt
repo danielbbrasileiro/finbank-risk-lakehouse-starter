@@ -2,6 +2,7 @@ pandas==2.2.3
 numpy==2.2.1
 faker==33.3.1
 requests==2.32.3
+chardet>=5.2,<6.0
 sqlalchemy==2.0.36
 psycopg2-binary==2.9.10
 python-dotenv==1.0.1
@@ -12,6 +13,12 @@ dbt-core==1.8.9
 dbt-postgres==1.8.2
 qdrant-client==1.12.1
 openai==1.59.6
-google-generativeai==0.8.3
+google-genai>=1.0.0,<2.0.0
 tenacity==9.0.0
-
+pyyaml==6.0.2
+dagster==1.9.8
+dagster-webserver==1.9.8
+pytest==9.0.2
+ruff==0.14.6
+sqlfluff==3.5.0
+sqlfluff-templater-dbt==3.5.0

@@ -1,82 +1,104 @@
-import os
-import time
 import logging
-from typing import Optional
+import os
+from pathlib import Path
 
-import google.generativeai as genai
 from dotenv import load_dotenv
 from tenacity import (
     retry,
+    retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
-    retry_if_exception_type,
 )
 
-# Setup logging
+from .governed_copilot import answer_question
+from .prompts import SYSTEM_INSTRUCTION
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-from prompts import SYSTEM_INSTRUCTION
-
 load_dotenv()
+
 
 class RiskAgent:
     """
-    RiskAgent handles interactions with the Gemma 4 model for financial risk analysis.
-    It implements robust retry logic to stay within the 15 RPM free tier limit.
+    RiskAgent handles interactions with the configured Google GenAI model.
+
+    The Google SDK is imported lazily so the offline demo and CI can run without
+    an external provider installed or configured.
     """
-    
-    def __init__(self, model_name: str = "gemma-4-31b-it"):
+
+    def __init__(self, model_name: str | None = None):
         api_key = os.getenv("GOOGLE_API_KEY")
         if not api_key:
             raise ValueError("GOOGLE_API_KEY not found in environment variables.")
-        
-        genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel(
-            model_name=model_name,
-            system_instruction=SYSTEM_INSTRUCTION
-        )
-        self.chat = self.model.start_chat(history=[])
 
+        try:
+            from google import genai
+            from google.genai import types
+        except ImportError as exc:
+            raise ValueError("google-genai is not installed. Run `make bootstrap` first.") from exc
+
+        self.model_name = model_name or os.getenv("GOOGLE_MODEL", "gemini-2.5-flash")
+        self.client = genai.Client(api_key=api_key)
+        self.config = types.GenerateContentConfig(system_instruction=SYSTEM_INSTRUCTION)
 
     @retry(
-        retry=retry_if_exception_type(Exception), # In a real scenario, use specific RateLimit exception
+        retry=retry_if_exception_type(Exception),
         wait=wait_exponential(multiplier=1, min=4, max=60),
         stop=stop_after_attempt(5),
         before_sleep=lambda retry_state: logger.warning(
             f"Rate limit hit or error. Retrying in {retry_state.next_action.sleep} seconds..."
-        )
+        ),
     )
     def ask(self, prompt: str) -> str:
-        """
-        Sends a prompt to Gemma 4 and returns the response.
-        Includes retry logic for handling the 15 RPM limit.
-        """
-        response = self.chat.send_message(prompt)
-        return response.text
+        """Send a prompt to the configured model and return its response text."""
+        response = self.client.models.generate_content(
+            model=self.model_name,
+            contents=prompt,
+            config=self.config,
+        )
+        return response.text or ""
 
-def main():
-    print("--- FinBank Risk Assistant (Powered by Gemma 4 31b) ---")
+
+class OfflineGovernedRiskAgent:
+    """Deterministic no-key copilot used for demos, CI and recruiter walkthroughs."""
+
+    def ask(self, prompt: str) -> str:
+        audit_path = os.getenv("AI_AUDIT_PATH")
+        answer = answer_question(prompt, audit_path=Path(audit_path) if audit_path else None)
+        return answer.response
+
+
+def build_risk_agent() -> RiskAgent | OfflineGovernedRiskAgent:
+    demo_mode = os.getenv("AI_DEMO_MODE", "0").lower() in {"1", "true", "yes"}
+    if demo_mode or not os.getenv("GOOGLE_API_KEY"):
+        return OfflineGovernedRiskAgent()
+    return RiskAgent()
+
+
+def main() -> None:
+    print("--- FinBank Governed Risk Assistant ---")
     try:
-        agent = RiskAgent()
+        agent = build_risk_agent()
         print("Assistant ready. Type 'exit' to quit.")
-        
+
         while True:
             user_input = input("\n[User]: ")
             if user_input.lower() in ["exit", "quit", "sair"]:
                 break
-                
-            print("\n[Gemma 4]: ", end="", flush=True)
+
+            print("\n[Assistant]: ", end="", flush=True)
             try:
                 response = agent.ask(user_input)
                 print(response)
             except Exception as e:
                 print(f"\nError: {e}")
-                
+
     except ValueError as e:
         print(f"Configuration error: {e}")
     except Exception as e:
         print(f"Unexpected error: {e}")
+
 
 if __name__ == "__main__":
     main()

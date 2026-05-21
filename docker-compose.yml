@@ -36,6 +36,8 @@ services:
   redpanda:
     image: redpandadata/redpanda:latest
     container_name: finbank-redpanda
+    profiles:
+      - streaming
     command:
       - redpanda
       - start
