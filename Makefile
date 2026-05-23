@@ -30,6 +30,9 @@ generate:
 generate-macro-offline:
 	$(PYTHON) src/python_ingestion/bcb_extractor.py --offline-sample
 
+generate-cvm-offline:
+	$(PYTHON) src/python_ingestion/cvm_extractor.py --offline-sample
+
 publish-bronze:
 	$(PYTHON) src/python_ingestion/publish_bronze.py
 
@@ -37,22 +40,26 @@ build-lakehouse:
 	$(PYTHON) -m src.lakehouse.local_layers
 
 load:
-	$(PYTHON) src/python_ingestion/load_to_postgres.py
+	@if [ "$(DB_TARGET)" = "duckdb" ] || [ "$(DBT_TARGET)" = "duckdb" ]; then \
+		$(PYTHON) src/python_ingestion/load_to_duckdb.py; \
+	else \
+		$(PYTHON) src/python_ingestion/load_to_postgres.py; \
+	fi
 
 validate: rust-build rust-validate
 
 dbt:
-	cd dbt && ../$(DBT) build --profiles-dir .
+	cd dbt && DBT_SEND_ANONYMOUS_USAGE_STATS=false DBT_TARGET=$$(if [ "$(DB_TARGET)" = "duckdb" ] || [ "$(DBT_TARGET)" = "duckdb" ]; then echo "duckdb"; else echo "$${DBT_TARGET:-dev}"; fi) ../$(DBT) build --profiles-dir .
 
 dbt-parse:
-	cd dbt && ../$(DBT) parse --profiles-dir .
+	cd dbt && DBT_SEND_ANONYMOUS_USAGE_STATS=false ../$(DBT) parse --profiles-dir .
 
 dbt-docs:
-	cd dbt && ../$(DBT) docs generate --profiles-dir .
+	cd dbt && DBT_SEND_ANONYMOUS_USAGE_STATS=false ../$(DBT) docs generate --profiles-dir .
 
 pipeline: generate validate publish-bronze load dbt
 
-pipeline-local: generate generate-macro-offline validate publish-bronze build-lakehouse ai-eval
+pipeline-local: generate generate-macro-offline generate-cvm-offline validate publish-bronze build-lakehouse ai-eval
 
 warehouse-local: load dbt
 
@@ -66,7 +73,9 @@ ai-eval:
 	$(PYTHON) -m src.ai_assistant.eval_runner --eval-file ai/evals/risk_copilot.yml
 
 streaming-demo:
-	$(PYTHON) -m src.streaming.suspicious_events
+	@echo "Running Ingestion Stream Simulation..."
+	$(PYTHON) -m src.streaming.producer
+	$(PYTHON) -m src.streaming.consumer --one-shot
 
 evidence-pack:
 	$(PYTHON) scripts/evidence_pack.py
@@ -91,3 +100,4 @@ rust-validate:
 	$(RUST_VALIDATOR) validate --input data/raw/accounts.csv --schema schemas/accounts_schema.json
 	$(RUST_VALIDATOR) validate --input data/raw/transactions.csv --schema schemas/transactions_schema.json
 	$(RUST_VALIDATOR) validate --input data/raw/loans.csv --schema schemas/loans_schema.json
+	@if [ -f data/raw/cvm_funds.csv ]; then $(RUST_VALIDATOR) validate --input data/raw/cvm_funds.csv --schema schemas/cvm_funds_schema.json; fi

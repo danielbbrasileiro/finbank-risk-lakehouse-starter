@@ -9,6 +9,7 @@ sources:
       - name: transactions
       - name: loans
       - name: macro_indicators
+      - name: ai_copilot_audit
 
 models:
   - name: stg_customers
