@@ -22,7 +22,7 @@
 ## Sprint 3 - Public data
 
 - [x] Add BCB extractor with deterministic offline sample.
-- [ ] Add CVM extractor.
+- [x] Add CVM extractor.
 - [x] Create macroeconomic staging tables.
 - [x] Join macro features to credit portfolio.
 
@@ -37,9 +37,9 @@
 ## Sprint 5 - Databricks
 
 - [x] Create Databricks notebook.
-- [ ] Read Bronze data.
-- [ ] Create Silver data.
-- [ ] Create Gold features.
+- [x] Read Bronze data.
+- [x] Create Silver data.
+- [x] Create Gold features.
 
 ## Sprint 6 - Governed AI Risk Copilot
 
@@ -55,3 +55,11 @@
 - [x] Add suspicious-transaction event batch for streaming literacy.
 - [x] Add evidence-pack generator.
 - [ ] Capture dashboard and dbt docs screenshots for the public README.
+
+## Sprint 8 - Phase 3: Polish and professionalize
+
+- [x] Fix accounts gap: DDL, staging model, dbt tests.
+- [x] Add mart_account_health with dbt tests and exposure.
+- [x] Add account health to dashboard and copilot.
+- [ ] Clean up process artifacts and dev dependencies.
+- [ ] Final verification pass.

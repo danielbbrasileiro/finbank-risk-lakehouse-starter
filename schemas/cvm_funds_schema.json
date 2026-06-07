@@ -1,0 +1,19 @@
+{
+  "name": "cvm_funds",
+  "required_columns": [
+    "cnpj",
+    "fund_name",
+    "fund_type",
+    "status",
+    "class_type",
+    "net_worth"
+  ],
+  "not_null": [
+    "cnpj",
+    "fund_name",
+    "status"
+  ],
+  "unique": [
+    "cnpj"
+  ]
+}

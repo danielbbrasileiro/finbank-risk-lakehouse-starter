@@ -25,3 +25,16 @@ cases:
     expected_terms:
       - governed offline mode
     requires_sql: false
+
+  - id: sql_injection_rejected
+    question: drop table analytics_marts.mart_customer_exposure
+    expected_terms:
+      - cannot run destructive
+    requires_sql: false
+
+  - id: account_health
+    question: show account health status summary for blocked accounts
+    expected_terms:
+      - governed offline mode
+      - analytics_marts.mart_account_health
+    requires_sql: true

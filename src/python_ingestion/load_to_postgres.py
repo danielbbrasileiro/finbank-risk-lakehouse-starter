@@ -19,6 +19,7 @@ CORE_TABLES = [
 ]
 OPTIONAL_TABLES = [
     ("macro_indicators", "macro_indicators.csv"),
+    ("cvm_funds", "cvm_funds.csv"),
 ]
 
 
