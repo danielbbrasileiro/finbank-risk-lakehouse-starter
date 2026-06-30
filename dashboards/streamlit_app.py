@@ -12,15 +12,15 @@ from src.ai_assistant.app import build_risk_agent
 
 load_dotenv()
 
-# --- Page Config ---
+# Page config
 st.set_page_config(
     page_title="FinBank Risk Lakehouse | Intelligence Suite",
-    page_icon="🎯",
+    page_icon="",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# --- Custom CSS for Premium Look ---
+# Custom styling (glassmorphism cards, typography)
 st.markdown(
     """
     <style>
@@ -34,7 +34,7 @@ st.markdown(
         background-color: #0e1117;
     }
     
-    /* Glassmorphism card effect */
+    /* Metric cards — glassmorphism */
     div[data-testid="stMetric"] {
         background: rgba(255, 255, 255, 0.05);
         border: 1px solid rgba(255, 255, 255, 0.1);
@@ -77,10 +77,9 @@ def get_engine():
     db = os.getenv("POSTGRES_DB", "finbank")
 
     try:
-        # Try connecting to Postgres
+        # Postgres first
         engine = create_engine(f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{db}")
-        # Test the connection quickly
-        with engine.connect() as conn:
+        with engine.connect() as conn:  # quick health check
             conn.execute(text("SELECT 1"))
         return engine
     except Exception as postgres_err:
@@ -95,24 +94,22 @@ def get_engine():
 def read_sql(query: str) -> pd.DataFrame:
     try:
         engine = get_engine()
-        # For DuckDB, SQLAlchemy connection may require running raw connection or pandas compatibility
-        # pd.read_sql works nicely with duckdb SQLAlchemy engine
         return pd.read_sql(query, engine)
     except Exception as e:
         st.error(f"Error connecting to database: {e}")
         return pd.DataFrame()
 
 
-# --- AI Assistant Initialization ---
+# AI assistant setup
 if "agent" not in st.session_state:
     try:
         st.session_state.agent = build_risk_agent()
     except Exception as e:
         st.sidebar.error(f"AI Assistant offline: {e}")
 
-# --- Sidebar: AI Chat ---
+# Sidebar chat
 with st.sidebar:
-    st.title("🤖 Risk Advisor")
+    st.title("Risk Advisor")
     st.caption("Governed copilot: offline demo or configured LLM provider")
 
     if "messages" not in st.session_state:
@@ -136,11 +133,11 @@ with st.sidebar:
             else:
                 st.error("The governed risk copilot is currently unavailable.")
 
-# --- Main Dashboard ---
-st.title("🎯 FinBank Risk Lakehouse")
+# Main dashboard
+st.title("FinBank Risk Lakehouse")
 st.markdown("---")
 
-# Load Data
+# Load mart data
 exposure = read_sql("select * from analytics_marts.mart_customer_exposure")
 transactions = read_sql("select * from analytics_marts.mart_daily_transactions")
 account_health = read_sql("select * from analytics_marts.mart_account_health")
@@ -151,7 +148,7 @@ if not exposure.empty:
     )
 
     with tab1:
-        # --- Top KPIs ---
+        # KPIs
         col1, col2, col3, col4 = st.columns(4)
 
         total_customers = exposure["customer_id"].nunique()
@@ -169,50 +166,77 @@ if not exposure.empty:
             delta=f"{(high_risk_count / total_customers) * 100:.1f}% of total",
             delta_color="inverse",
         )
-        col4.metric("Avg DPD", f"{avg_dpd:.1f} days")
+        col4.metric("Avg Days Past Due", f"{avg_dpd:.1f} days")
 
-        st.markdown("### 📊 Portfolio Insights")
+        st.markdown("### Portfolio Insights")
 
         c1, c2 = st.columns([2, 1])
 
+        # Readable legend labels
+        risk_label_map = {
+            "PERFORMING": "Performing",
+            "WATCHLIST": "Watchlist",
+            "HIGH_RISK": "High Risk",
+            "DEFAULT_RISK": "Default Risk",
+        }
+
         with c1:
             st.subheader("Exposure by Segment & Risk Level")
+            exposure_chart = exposure.copy()
+            exposure_chart["Risk Status"] = exposure_chart["portfolio_status"].map(risk_label_map).fillna(exposure_chart["portfolio_status"])
             fig_bar = px.bar(
-                exposure,
+                exposure_chart,
                 x="segment",
                 y="total_outstanding_balance",
-                color="portfolio_status",
-                title="Exposure by Segment (Color by Risk Status)",
+                color="Risk Status",
+                title="Outstanding Balance by Customer Segment",
+                labels={
+                    "segment": "Customer Segment",
+                    "total_outstanding_balance": "Outstanding Balance (R$)",
+                    "Risk Status": "Risk Status",
+                },
                 template="plotly_dark",
                 color_discrete_map={
-                    "PERFORMING": "#00CC96",
-                    "WATCHLIST": "#636EFA",
-                    "HIGH_RISK": "#EF553B",
-                    "DEFAULT_RISK": "#AB63FA",
+                    "Performing": "#00CC96",
+                    "Watchlist": "#636EFA",
+                    "High Risk": "#EF553B",
+                    "Default Risk": "#AB63FA",
                 },
+            )
+            fig_bar.update_layout(
+                yaxis_tickprefix="R$ ",
+                yaxis_tickformat=",.0f",
+                legend_title_text="Risk Status",
             )
             st.plotly_chart(fig_bar, use_container_width=True)
 
         with c2:
             st.subheader("Risk Distribution")
+            exposure_pie = exposure.copy()
+            exposure_pie["Risk Status"] = exposure_pie["portfolio_status"].map(risk_label_map).fillna(exposure_pie["portfolio_status"])
             fig_pie = px.pie(
-                exposure,
-                names="portfolio_status",
+                exposure_pie,
+                names="Risk Status",
                 values="total_outstanding_balance",
                 hole=0.4,
+                title="Portfolio Risk Breakdown",
                 template="plotly_dark",
-                color="portfolio_status",
+                color="Risk Status",
                 color_discrete_map={
-                    "PERFORMING": "#00CC96",
-                    "WATCHLIST": "#636EFA",
-                    "HIGH_RISK": "#EF553B",
-                    "DEFAULT_RISK": "#AB63FA",
+                    "Performing": "#00CC96",
+                    "Watchlist": "#636EFA",
+                    "High Risk": "#EF553B",
+                    "Default Risk": "#AB63FA",
                 },
+            )
+            fig_pie.update_traces(
+                textinfo="percent+label",
+                hovertemplate="%{label}: R$ %{value:,.2f}<extra></extra>",
             )
             st.plotly_chart(fig_pie, use_container_width=True)
 
     with tab2:
-        # --- Transaction Timeline ---
+        # Transaction timeline
         st.markdown("### 💸 Transactional Intelligence")
         if not transactions.empty:
             daily = transactions.groupby("transaction_date", as_index=False).agg(
@@ -244,17 +268,22 @@ if not exposure.empty:
             )
 
             fig_line.update_layout(
-                title="Transaction Volume vs Suspicious Activity",
+                title="Daily Transaction Volume vs Suspicious Activity",
+                xaxis_title="Date",
+                yaxis_title="Transaction Volume (R$)",
+                yaxis_tickprefix="R$ ",
+                yaxis_tickformat=",.0f",
                 template="plotly_dark",
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                hovermode="x unified",
             )
             st.plotly_chart(fig_line, use_container_width=True)
         else:
             st.info("No transaction data available.")
 
-        # Real-time suspicious summary
+        # Streaming alerts
         st.markdown("---")
-        st.markdown("### 📡 Real-Time Suspicious Ingestion Alerts (Redpanda / local fallback)")
+        st.markdown("### Real-Time Suspicious Ingestion Alerts (Redpanda / Local Fallback)")
 
         streaming_summary = read_sql("select * from raw.streaming_suspicious_summary")
         if not streaming_summary.empty:
@@ -285,7 +314,7 @@ if not exposure.empty:
             )
 
     with tab3:
-        st.markdown("### 🏦 Account Health Intelligence")
+        st.markdown("### Account Health Intelligence")
 
         if not account_health.empty:
             h_col1, h_col2, h_col3, h_col4 = st.columns(4)
@@ -299,7 +328,7 @@ if not exposure.empty:
             )
             total_accounts_sum = int(account_health["total_accounts"].sum())
 
-            h_col1.metric("Customers", f"{total_customers_ah:,}")
+            h_col1.metric("Total Customers", f"{total_customers_ah:,}")
             h_col2.metric("Avg Active Ratio", f"{avg_active_ratio:.1f}%")
             h_col3.metric(
                 "Blocked Customers",
@@ -307,76 +336,109 @@ if not exposure.empty:
                 delta=f"{(blocked_customers / total_customers_ah) * 100:.1f}% of total" if total_customers_ah > 0 else "0%",
                 delta_color="inverse",
             )
-            h_col4.metric("Total Accounts", f"{total_accounts_sum:,}")
+            h_col4.metric("Total Accounts Managed", f"{total_accounts_sum:,}")
 
             ah1, ah2 = st.columns([2, 1])
 
+            # Readable legend labels
+            health_label_map = {
+                "HEALTHY": "Healthy",
+                "PARTIALLY_BLOCKED": "Partially Blocked",
+                "FULLY_BLOCKED": "Fully Blocked",
+                "ALL_CLOSED": "All Closed",
+            }
+
             with ah1:
                 st.subheader("Account Health by Segment")
-                fig_ah_bar = px.bar(
+                ah_bar_data = (
                     account_health.groupby(["segment", "account_health_status"], as_index=False)
-                    .agg(customer_count=("customer_id", "count")),
+                    .agg(customer_count=("customer_id", "count"))
+                )
+                ah_bar_data["Health Status"] = ah_bar_data["account_health_status"].map(health_label_map).fillna(ah_bar_data["account_health_status"])
+                fig_ah_bar = px.bar(
+                    ah_bar_data,
                     x="segment",
                     y="customer_count",
-                    color="account_health_status",
-                    title="Account Health Status by Segment",
+                    color="Health Status",
+                    title="Customer Count by Segment and Health Status",
+                    labels={
+                        "segment": "Customer Segment",
+                        "customer_count": "Number of Customers",
+                        "Health Status": "Health Status",
+                    },
                     template="plotly_dark",
                     color_discrete_map={
-                        "HEALTHY": "#00CC96",
-                        "PARTIALLY_BLOCKED": "#FFA15A",
-                        "FULLY_BLOCKED": "#EF553B",
-                        "ALL_CLOSED": "#636EFA",
+                        "Healthy": "#00CC96",
+                        "Partially Blocked": "#FFA15A",
+                        "Fully Blocked": "#EF553B",
+                        "All Closed": "#636EFA",
                     },
                 )
+                fig_ah_bar.update_layout(legend_title_text="Health Status")
                 st.plotly_chart(fig_ah_bar, use_container_width=True)
 
             with ah2:
                 st.subheader("Health Distribution")
+                ah_pie_data = account_health.copy()
+                ah_pie_data["Health Status"] = ah_pie_data["account_health_status"].map(health_label_map).fillna(ah_pie_data["account_health_status"])
                 fig_ah_pie = px.pie(
-                    account_health,
-                    names="account_health_status",
+                    ah_pie_data,
+                    names="Health Status",
                     hole=0.4,
+                    title="Account Health Breakdown",
                     template="plotly_dark",
-                    color="account_health_status",
+                    color="Health Status",
                     color_discrete_map={
-                        "HEALTHY": "#00CC96",
-                        "PARTIALLY_BLOCKED": "#FFA15A",
-                        "FULLY_BLOCKED": "#EF553B",
-                        "ALL_CLOSED": "#636EFA",
+                        "Healthy": "#00CC96",
+                        "Partially Blocked": "#FFA15A",
+                        "Fully Blocked": "#EF553B",
+                        "All Closed": "#636EFA",
                     },
+                )
+                fig_ah_pie.update_traces(
+                    textinfo="percent+label",
+                    hovertemplate="%{label}: %{value} customers<extra></extra>",
                 )
                 st.plotly_chart(fig_ah_pie, use_container_width=True)
 
             st.markdown("---")
-            st.markdown("### 📋 Active Ratio by State")
+            st.markdown("### Active Ratio by State")
             fig_ah_state = px.box(
                 account_health,
                 x="state",
                 y="active_ratio_pct",
-                title="Active Account Ratio Distribution by State",
+                title="Distribution of Active Account Ratio by State",
+                labels={
+                    "state": "State (UF)",
+                    "active_ratio_pct": "Active Accounts (%)",
+                },
                 template="plotly_dark",
                 color_discrete_sequence=["#636EFA"],
+            )
+            fig_ah_state.update_layout(
+                yaxis_ticksuffix="%",
+                xaxis_categoryorder="category ascending",
             )
             st.plotly_chart(fig_ah_state, use_container_width=True)
         else:
             st.info("No account health data available. Run `make pipeline` and `make dbt` first.")
 
     with tab4:
-        st.subheader("🛡️ Governed AI Copilot Audit Trail")
+        st.subheader("Governed AI Copilot Audit Trail")
         st.markdown(
             "This tab provides transparency into the AI Copilot safety, "
             "showing which questions were processed, which files were retrieved, and which queries were blocked by guardrails."
         )
 
-        # Helper to read audit log
+        # Try DB first, then fall back to local JSONL
         def read_audit_logs() -> pd.DataFrame:
             import json
 
-            # 1. Try DB
+            # DB source
             db_df = read_sql("select * from analytics_marts.mart_ai_copilot_audit")
             if not db_df.empty:
                 return db_df
-            # 2. Try JSONL File
+            # JSONL fallback
             audit_file = Path(os.getenv("AI_AUDIT_PATH", "data/ai_audit/copilot_audit.jsonl"))
             if audit_file.exists() and audit_file.stat().st_size > 0:
                 records = []
@@ -397,7 +459,7 @@ if not exposure.empty:
         audits = read_audit_logs()
 
         if not audits.empty:
-            # Metrics
+            # KPIs
             a1, a2, a3 = st.columns(3)
             total_queries = len(audits)
             rejected_queries = len(audits[audits["status"] == "rejected"])
@@ -412,20 +474,28 @@ if not exposure.empty:
             )
             a3.metric("System Mode", "Governed Hybrid")
 
-            # Rejection vs Answered Chart
+            # Outcome breakdown chart
+            audit_status_labels = {"answered": "Answered", "rejected": "Blocked by Guardrails"}
+            audit_chart_data = audits.groupby("status").size().reset_index(name="count")
+            audit_chart_data["Status"] = audit_chart_data["status"].map(audit_status_labels).fillna(audit_chart_data["status"])
             fig_audit = px.bar(
-                audits.groupby("status").size().reset_index(name="count"),
-                x="status",
+                audit_chart_data,
+                x="Status",
                 y="count",
-                title="Copilot Status Breakdown",
-                color="status",
+                title="AI Copilot Query Outcomes",
+                labels={
+                    "Status": "Query Outcome",
+                    "count": "Number of Queries",
+                },
+                color="Status",
                 template="plotly_dark",
-                color_discrete_map={"answered": "#00CC96", "rejected": "#EF553B"},
+                color_discrete_map={"Answered": "#00CC96", "Blocked by Guardrails": "#EF553B"},
             )
+            fig_audit.update_layout(legend_title_text="Query Outcome")
             st.plotly_chart(fig_audit, use_container_width=True)
 
-            # Dataframe
-            st.markdown("### 📋 Recent Audited Interactions")
+            # Audit log table
+            st.markdown("### Recent Audited Interactions")
             st.dataframe(
                 audits[
                     ["audit_timestamp", "status", "question", "citations", "guarded_sql", "response"]
