@@ -15,7 +15,7 @@ load_dotenv()
 # Page config
 st.set_page_config(
     page_title="FinBank Risk Lakehouse | Intelligence Suite",
-    page_icon="",
+    page_icon="🏦",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -237,7 +237,7 @@ if not exposure.empty:
 
     with tab2:
         # Transaction timeline
-        st.markdown("### 💸 Transactional Intelligence")
+        st.markdown("### Transactional Intelligence")
         if not transactions.empty:
             daily = transactions.groupby("transaction_date", as_index=False).agg(
                 {"total_amount": "sum", "suspicious_count": "sum"}
@@ -248,7 +248,7 @@ if not exposure.empty:
                 go.Scatter(
                     x=daily["transaction_date"],
                     y=daily["total_amount"],
-                    name="Volume (R$)",
+                    name="Transaction Volume (R$)",
                     line=dict(color="#636EFA", width=3),
                 )
             )
@@ -261,7 +261,7 @@ if not exposure.empty:
                         if daily["suspicious_count"].max() > 0
                         else 1
                     ),
-                    name="Suspicious (Normalized)",
+                    name="Suspicious Activity (scaled)",
                     opacity=0.3,
                     marker_color="#EF553B",
                 )
@@ -499,8 +499,20 @@ if not exposure.empty:
             st.dataframe(
                 audits[
                     ["audit_timestamp", "status", "question", "citations", "guarded_sql", "response"]
-                ].sort_values("audit_timestamp", ascending=False),
+                ]
+                .rename(
+                    columns={
+                        "audit_timestamp": "Timestamp",
+                        "status": "Status",
+                        "question": "Question",
+                        "citations": "Citations",
+                        "guarded_sql": "Generated SQL",
+                        "response": "Response",
+                    }
+                )
+                .sort_values("Timestamp", ascending=False),
                 use_container_width=True,
+                hide_index=True,
             )
         else:
             st.info(
